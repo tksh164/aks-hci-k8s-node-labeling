@@ -6,7 +6,7 @@ param (
     [string] $Value
 )
 
-function Get-K8sNodeNamesOnHciNode
+function Get-K8sNodeNameOnHciNode
 {
     Get-CimInstance -Namespace 'root\virtualization\v2' -ClassName 'Msvm_ComputerSystem' -Filter '(Caption = "Virtual Machine") AND (EnabledState = 2)' |
         ForEach-Object -Process {
@@ -21,13 +21,13 @@ function Get-K8sNodeNamesOnHciNode
         }
 }
 
-function Get-K8sNodeNamesInAksCluster
+function Get-K8sNodeNameInAksCluster
 {
     kubectl get nodes --output=jsonpath='{range .items[*]}{.metadata.name}{\"\n\"}{end}'
 }
 
-$k8sNodeNamesOnHciNode = Get-K8sNodeNamesOnHciNode
-Get-K8sNodeNamesInAksCluster | ForEach-Object -Process {
+$k8sNodeNamesOnHciNode = Get-K8sNodeNameOnHciNode
+Get-K8sNodeNameInAksCluster | ForEach-Object -Process {
     $k8sNodeName = $_
     if ($k8sNodeNamesOnHciNode -contains $k8sNodeName) {
         # Add a node label "$Label" with "$Value" as the value.
