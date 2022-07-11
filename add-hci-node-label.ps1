@@ -8,17 +8,20 @@ param (
 
 function Get-K8sNodeNameOnHciNode
 {
-    Get-CimInstance -Namespace 'root\virtualization\v2' -ClassName 'Msvm_ComputerSystem' -Filter '(Caption = "Virtual Machine") AND (EnabledState = 2)' |
-        ForEach-Object -Process {
-            $vm = $_
-            ($vm | Get-CimAssociatedInstance -ResultClassName 'Msvm_KvpExchangeComponent').GuestIntrinsicExchangeItems |
-                ForEach-Object -Process {
-                    $kvpExchangeDataItem = [xml] $_
-                    if ($kvpExchangeDataItem.SelectSingleNode('/INSTANCE/PROPERTY[@NAME="Name"]/VALUE[child::text() = "FullyQualifiedDomainName"]') -ne $null) {
-                        $kvpExchangeDataItem.SelectSingleNode('/INSTANCE/PROPERTY[@NAME="Data"]/VALUE/child::text()').Value
-                    }
-                }
+    $params = @{
+        Namespace = 'root\virtualization\v2'
+        ClassName = 'Msvm_ComputerSystem'
+        Filter    = '(Caption = "Virtual Machine") AND (EnabledState = 2)'
+    }
+    Get-CimInstance @params | ForEach-Object -Process {
+        $vm = $_
+        ($vm | Get-CimAssociatedInstance -ResultClassName 'Msvm_KvpExchangeComponent').GuestIntrinsicExchangeItems | ForEach-Object -Process {
+            $kvpExchangeDataItem = [xml] $_
+            if ($kvpExchangeDataItem.SelectSingleNode('/INSTANCE/PROPERTY[@NAME="Name"]/VALUE[child::text() = "FullyQualifiedDomainName"]') -ne $null) {
+                $kvpExchangeDataItem.SelectSingleNode('/INSTANCE/PROPERTY[@NAME="Data"]/VALUE/child::text()').Value
+            }
         }
+    }
 }
 
 function Get-K8sNodeNameInAksCluster
