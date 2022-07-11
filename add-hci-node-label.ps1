@@ -34,6 +34,6 @@ Get-K8sNodeNameInAksCluster | ForEach-Object -Process {
     $k8sNodeName = $_
     if ($k8sNodeNamesOnHciNode -contains $k8sNodeName) {
         # Add a node label "$Label" with "$Value" as the value.
-        kubectl label --overwrite nodes $k8sNodeName $Label=$Value
+        kubectl label --overwrite node $k8sNodeName $Label=$Value
     }
 }
