@@ -13,9 +13,9 @@ function Get-K8sNodeNameOnHciNode
             $vm = $_
             ($vm | Get-CimAssociatedInstance -ResultClassName 'Msvm_KvpExchangeComponent').GuestIntrinsicExchangeItems |
                 ForEach-Object -Process {
-                    $kvpExchangeDataItemXmlElement = [xml] $_
-                    if ($kvpExchangeDataItemXmlElement.SelectSingleNode('/INSTANCE/PROPERTY[@NAME="Name"]/VALUE[child::text() = "FullyQualifiedDomainName"]') -ne $null) {
-                        $kvpExchangeDataItemXmlElement.SelectSingleNode('/INSTANCE/PROPERTY[@NAME="Data"]/VALUE/child::text()').Value
+                    $kvpExchangeDataItem = [xml] $_
+                    if ($kvpExchangeDataItem.SelectSingleNode('/INSTANCE/PROPERTY[@NAME="Name"]/VALUE[child::text() = "FullyQualifiedDomainName"]') -ne $null) {
+                        $kvpExchangeDataItem.SelectSingleNode('/INSTANCE/PROPERTY[@NAME="Data"]/VALUE/child::text()').Value
                     }
                 }
         }
