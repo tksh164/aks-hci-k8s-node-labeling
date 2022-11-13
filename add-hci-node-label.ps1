@@ -13,8 +13,7 @@ param (
 function Get-NormalizedAksVMNameK8sNodeNamePair
 {
     $result = @{}
-    # Revemo .\
-    .\kubectl get nodes --output=jsonpath='{range .items[*]}{.spec.providerID}{\"\t\"}{.metadata.name}{\"\n\"}{end}' |
+    kubectl get nodes --output=jsonpath='{range .items[*]}{.spec.providerID}{\"\t\"}{.metadata.name}{\"\n\"}{end}' |
         ForEach-Object -Process {
             $providerID, $k8sNodeName = $_ -split "`t"
             $normalizedAksVMName = $providerID.Replace('moc://', '')
@@ -39,8 +38,7 @@ Get-NormalizedVMNameOnLocalHciNode |
         $vmName = $_
         if ($aksVMNameK8sNodeNamePairs.ContainsKey($vmName)) {
             $k8sNodeName = $aksVMNameK8sNodeNamePairs[$vmName]
-            # Remove .\
-            .\kubectl label --overwrite node $k8sNodeName $Label=$Value
+            kubectl label --overwrite node $k8sNodeName $Label=$Value
             Write-Verbose -Message ('Added a label "{0}={1}" to the K8s node "{2}" that running as VM "{3}".' -f $Label, $Value, $k8sNodeName, $vmName)
         }
     }
