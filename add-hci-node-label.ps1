@@ -1,3 +1,7 @@
+#Requires -RunAsAdministrator
+#Requires -Version 5
+
+[CmdletBinding()]
 param (
     [Parameter(Mandatory)]
     [string] $Label,
@@ -6,34 +10,37 @@ param (
     [string] $Value
 )
 
-function Get-K8sNodeNameOnHciNode
+function Get-NormalizedAksVMNameK8sNodeNamePair
 {
-    $params = @{
-        Namespace = 'root\virtualization\v2'
-        ClassName = 'Msvm_ComputerSystem'
-        Filter    = '(Caption = "Virtual Machine") AND (EnabledState = 2)'
+    $result = @{}
+    # Revemo .\
+    .\kubectl get nodes --output=jsonpath='{range .items[*]}{.spec.providerID}{\"\t\"}{.metadata.name}{\"\n\"}{end}' |
+        ForEach-Object -Process {
+            $providerID, $k8sNodeName = $_ -split "`t"
+            $normalizedAksVMName = $providerID.Replace('moc://', '')
+            $result[$normalizedAksVMName] = $k8sNodeName
+        }
+    Write-Verbose -Message ('{0} K8s nodes found in the AKS cluster.' -f $result.Count)
+    $result
+}
+
+function Get-NormalizedVMNameOnLocalHciNode
+{
+    $vmNames = Get-VM | Select-Object -ExpandProperty Name | ForEach-Object -Process {
+        if ($_.LastIndexOf('-') -gt 0) { $_.Remove($_.LastIndexOf('-')) } else { $_ }
     }
-    Get-CimInstance @params | ForEach-Object -Process {
-        $vm = $_
-        ($vm | Get-CimAssociatedInstance -ResultClassName 'Msvm_KvpExchangeComponent').GuestIntrinsicExchangeItems | ForEach-Object -Process {
-            $kvpExchangeDataItem = [xml] $_
-            if ($kvpExchangeDataItem.SelectSingleNode('/INSTANCE/PROPERTY[@NAME="Name"]/VALUE[child::text() = "FullyQualifiedDomainName"]') -ne $null) {
-                $kvpExchangeDataItem.SelectSingleNode('/INSTANCE/PROPERTY[@NAME="Data"]/VALUE/child::text()').Value
-            }
+    Write-Verbose -Message ('{0} Hyper-V VMs found on the HCI node "{1}".' -f $vmNames.Length, $env:ComputerName)
+    $vmNames
+}
+
+$aksVMNameK8sNodeNamePairs = Get-NormalizedAksVMNameK8sNodeNamePair
+Get-NormalizedVMNameOnLocalHciNode |
+    ForEach-Object -Process {
+        $vmName = $_
+        if ($aksVMNameK8sNodeNamePairs.ContainsKey($vmName)) {
+            $k8sNodeName = $aksVMNameK8sNodeNamePairs[$vmName]
+            # Remove .\
+            .\kubectl label --overwrite node $k8sNodeName $Label=$Value
+            Write-Verbose -Message ('Added a label "{0}={1}" to the K8s node "{2}" that running as VM "{3}".' -f $Label, $Value, $k8sNodeName, $vmName)
         }
     }
-}
-
-function Get-K8sNodeNameInAksCluster
-{
-    kubectl get nodes --output=jsonpath='{range .items[*]}{.metadata.name}{\"\n\"}{end}'
-}
-
-$k8sNodeNamesOnHciNode = Get-K8sNodeNameOnHciNode
-Get-K8sNodeNameInAksCluster | ForEach-Object -Process {
-    $k8sNodeName = $_
-    if ($k8sNodeNamesOnHciNode -contains $k8sNodeName) {
-        # Add a node label "$Label" with "$Value" as the value.
-        kubectl label --overwrite node $k8sNodeName $Label=$Value
-    }
-}
