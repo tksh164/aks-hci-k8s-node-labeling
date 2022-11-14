@@ -25,9 +25,10 @@ function Get-NormalizedAksVMNameK8sNodeNamePair
 
 function Get-NormalizedVMNameOnLocalHciNode
 {
-    $vmNames = Get-VM | Select-Object -ExpandProperty Name | ForEach-Object -Process {
-        if ($_.LastIndexOf('-') -gt 0) { $_.Remove($_.LastIndexOf('-')) } else { $_ }
-    }
+    $vmNames = Get-VM | Select-Object -ExpandProperty Name |
+        ForEach-Object -Process {
+            if ($_.LastIndexOf('-') -gt 0) { $_.Remove($_.LastIndexOf('-')) } else { $_ }
+        }
     Write-Verbose -Message ('{0} Hyper-V VMs found on the HCI node "{1}".' -f $vmNames.Length, $env:ComputerName)
     $vmNames
 }
