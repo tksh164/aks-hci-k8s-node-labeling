@@ -25,7 +25,8 @@ function Get-NormalizedAksVMNameK8sNodeNamePair
 
 function Get-NormalizedVMNameOnLocalHciNode
 {
-    $vmNames = Get-VM | Select-Object -ExpandProperty Name |
+    $vmNames = Get-VM |
+        Select-Object -ExpandProperty Name |
         ForEach-Object -Process {
             if ($_.LastIndexOf('-') -gt 0) { $_.Remove($_.LastIndexOf('-')) } else { $_ }
         }
